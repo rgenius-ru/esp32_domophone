@@ -281,6 +281,43 @@ void setLamp(int newVal) {
 #endif
 }
 
+// Закрыть дверной замок
+void closeDoorLock(void *pvParameters) {
+    // Задержка перед выполнением кода задачи 
+    vTaskDelay(pdMS_TO_TICKS(5000)); // 5000 мс (5с)
+  
+    // Код, который будет выполняться после задержки
+    analogWrite(DOOR_LOCK_PIN, 0); 
+    Serial.print("Дверной замок закрылся.");
+    Serial.println();
+
+    // Удалить задачу, чтобы она не выполнялась снова
+    vTaskDelete(NULL); 
+}
+
+// Door Opened
+void openDoor() {
+#if defined(DOOR_LOCK_PIN)
+    // if (newVal != -1) {
+        // ledcWrite(lampChannel, 1);
+        analogWrite(DOOR_LOCK_PIN, 255);
+        // Создание задачи закрытие замка
+        xTaskCreate(
+            closeDoorLock,      // Функция с кодом задачи
+            "closeDoorLock",    // Название задачи
+            2048,               // Размер стека задачи
+            NULL,               // Параметры, передаваемые в задачу
+            1,                  // Приоритет задачи
+            NULL                // Дескриптор задачи
+        );
+        // digitalWrite(DOOR_LOCK_PIN, LOW);
+        
+        Serial.print("Дверной замок открылся на несколько секунд...");
+        Serial.println();
+    // }
+#endif
+}
+
 void printLocalTime(bool extraData=false) {
     struct tm timeinfo;
     if(!getLocalTime(&timeinfo)){

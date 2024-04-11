@@ -31,6 +31,7 @@
 // Functions from the main .ino
 extern void flashLED(int flashtime);
 extern void setLamp(int newVal);
+extern void openDoor();
 extern void printLocalTime(bool extraData);
 
 // External variables declared in the main .ino
@@ -405,6 +406,9 @@ static esp_err_t cmd_handler(httpd_req_t *req){
         } else {
             setLamp(lampVal);
         }
+    }
+    else if(!strcmp(variable, "door_open")) {
+        openDoor();
     }
     else if(!strcmp(variable, "save_prefs")) {
         if (filesystem) savePrefs(SPIFFS);
