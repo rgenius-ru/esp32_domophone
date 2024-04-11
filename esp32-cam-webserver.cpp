@@ -194,6 +194,8 @@ const int pwmfreq = 50000;     // 50K pwm frequency
 const int pwmresolution = 9;   // duty cycle bit range
 const int pwmMax = pow(2,pwmresolution)-1;
 
+bool isDoorLockOpened = false; // Открыт ли дверной замок
+
 #if defined(NO_FS)
     bool filesystem = false;
 #else
@@ -287,7 +289,8 @@ void closeDoorLock(void *pvParameters) {
     vTaskDelay(pdMS_TO_TICKS(5000)); // 5000 мс (5с)
   
     // Код, который будет выполняться после задержки
-    analogWrite(DOOR_LOCK_PIN, 0); 
+    analogWrite(DOOR_LOCK_PIN, 0);
+    isDoorLockOpened = false;
     Serial.print("Дверной замок закрылся.");
     Serial.println();
 
@@ -298,9 +301,11 @@ void closeDoorLock(void *pvParameters) {
 // Door Opened
 void openDoor() {
 #if defined(DOOR_LOCK_PIN)
-    // if (newVal != -1) {
+    if (not isDoorLockOpened) {
         // ledcWrite(lampChannel, 1);
         analogWrite(DOOR_LOCK_PIN, 255);
+        isDoorLockOpened = true;
+        
         // Создание задачи закрытие замка
         xTaskCreate(
             closeDoorLock,      // Функция с кодом задачи
@@ -314,7 +319,7 @@ void openDoor() {
         
         Serial.print("Дверной замок открылся на несколько секунд...");
         Serial.println();
-    // }
+    }
 #endif
 }
 
