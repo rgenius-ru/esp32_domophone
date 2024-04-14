@@ -634,5 +634,25 @@
     }
 
   })
+  
+  // Функция для выполнения GET-запроса
+  function callDoorBell() {
+    fetch('/door_bell')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.text();
+      })
+      .then(data => {
+        console.log('Door bell rang:', data);
+      })
+      .catch(error => {
+        console.error('There has been a problem with your fetch operation:', error);
+      });
+  }
+
+  // Вызов функции callDoorBell каждые 500 мс
+  setInterval(callDoorBell, 500);
   </script>
 </html>

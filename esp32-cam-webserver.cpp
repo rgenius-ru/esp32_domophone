@@ -196,6 +196,16 @@ const int pwmMax = pow(2,pwmresolution)-1;
 
 bool isDoorLockOpened = false; // Открыт ли дверной замок
 
+// Variables will change:
+int ringState = LOW;          // the current state of the output pin
+int buttonState;             // the current reading from the input pin
+int lastButtonState = LOW;   // the previous reading from the input pin
+
+// the following variables are unsigned longs because the time, measured in
+// milliseconds, will quickly become a bigger number than can be stored in an int.
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+const int debounceDelay = 50;    // the debounce time; increase if the output flickers
+
 #if defined(NO_FS)
     bool filesystem = false;
 #else
@@ -323,6 +333,58 @@ void openDoor() {
 #endif
 }
 
+void doorbell_rings_update(void *pvParameters){
+    TickType_t xLastWakeTime = xTaskGetTickCount(); // Получить текущее время в тиках
+
+    for (;;) {
+        // Ждать до следующего цикла 10 мс
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10));
+
+        // read the state of the switch into a local variable:
+        bool reading = digitalRead(BUTTON_PIN);
+
+        // check to see if you just pressed the button
+        // (i.e. the input went from LOW to HIGH), and you've waited long enough
+        // since the last press to ignore any noise:
+
+        // If the switch changed, due to noise or pressing:
+        if (reading != lastButtonState) {
+            // reset the debouncing timer
+            lastDebounceTime = millis();
+        }
+
+        if ((millis() - lastDebounceTime) > debounceDelay) {
+            // whatever the reading is at, it's been there for longer than the debounce
+            // delay, so take it as the actual current state:
+
+            // if the button state has changed:
+            if (reading != buttonState) {
+                buttonState = reading;
+
+                // only toggle the LED if the new button state is HIGH
+                if (buttonState == HIGH) {
+                    ringState = HIGH;
+                    Serial.println("Button pushed");
+                }
+            }
+        }
+
+        // set the LED:
+        analogWrite(4, ringState);
+
+        // save the reading. Next time through the loop, it'll be the lastButtonState:
+        lastButtonState = reading;
+  }
+}
+
+bool getRingState(){
+    return ringState;
+}
+
+void ringHeard(){
+    ringState = LOW;
+}
+
 void printLocalTime(bool extraData=false) {
     struct tm timeinfo;
     if(!getLocalTime(&timeinfo)){
@@ -371,8 +433,8 @@ void StartCamera() {
     config.pin_pclk = PCLK_GPIO_NUM;
     config.pin_vsync = VSYNC_GPIO_NUM;
     config.pin_href = HREF_GPIO_NUM;
-    config.pin_sscb_sda = SIOD_GPIO_NUM;
-    config.pin_sscb_scl = SIOC_GPIO_NUM;
+    config.pin_sccb_sda = SIOD_GPIO_NUM;
+    config.pin_sccb_scl = SIOC_GPIO_NUM;
     config.pin_pwdn = PWDN_GPIO_NUM;
     config.pin_reset = RESET_GPIO_NUM;
     config.xclk_freq_hz = xclk * 1000000;
@@ -705,6 +767,10 @@ void setup() {
         digitalWrite(LED_PIN, LED_ON);
     #endif
 
+    #if defined(BUTTON_PIN)
+        pinMode(BUTTON_PIN, INPUT_PULLUP);
+    #endif
+
     // Start the SPIFFS filesystem before we initialise the camera
     if (filesystem) {
         filesystemStart();
@@ -816,6 +882,16 @@ void setup() {
     } else {
         Serial.println("No lamp, or lamp disabled in config");
     }
+
+    // Создание задачи
+    xTaskCreate(
+        doorbell_rings_update,   // Функция с кодом задачи
+        "doorbell_rings_update", // Название задачи
+        2048,           // Размер стека задачи
+        NULL,           // Параметры, передаваемые в задачу
+        1,              // Приоритет задачи
+        NULL            // Дескриптор задачи
+    );
 
     // Start the camera server
     startCameraServer(httpPort, streamPort);

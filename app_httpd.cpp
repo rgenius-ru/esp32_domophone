@@ -32,6 +32,8 @@
 extern void flashLED(int flashtime);
 extern void setLamp(int newVal);
 extern void openDoor();
+extern bool getRingState();
+extern void ringHeard();
 extern void printLocalTime(bool extraData);
 
 // External variables declared in the main .ino
@@ -643,6 +645,16 @@ static esp_err_t stop_handler(httpd_req_t *req){
     return httpd_resp_send(req, NULL, 0);
 }
 
+static esp_err_t door_bell_handler(httpd_req_t *req){
+    flashLED(75);
+    if (getRingState()){
+        Serial.println("\r\nDing dong!");
+        ringHeard();
+    }
+    
+    // httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_send(req, NULL, 0);
+}
 
 static esp_err_t style_handler(httpd_req_t *req){
     httpd_resp_set_type(req, "text/css");
@@ -749,7 +761,7 @@ static esp_err_t index_handler(httpd_req_t *req){
 
 void startCameraServer(int hPort, int sPort){
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.max_uri_handlers = 16; // we use more than the default 8 (on port 80)
+    config.max_uri_handlers = 17; // we use more than the default 8 (on port 80)
 
     httpd_uri_t index_uri = {
         .uri       = "/",
@@ -847,6 +859,12 @@ void startCameraServer(int hPort, int sPort){
         .handler   = error_handler,
         .user_ctx  = NULL
     };
+    httpd_uri_t door_bell_uri = {
+        .uri       = "/door_bell",
+        .method    = HTTP_GET,
+        .handler   = door_bell_handler,
+        .user_ctx  = NULL
+    };
 
     // Request Handlers; config.max_uri_handlers (above) must be >= the number of handlers
     config.server_port = hPort;
@@ -868,6 +886,7 @@ void startCameraServer(int hPort, int sPort){
         httpd_register_uri_handler(camera_httpd, &logo_svg_uri);
         httpd_register_uri_handler(camera_httpd, &dump_uri);
         httpd_register_uri_handler(camera_httpd, &stop_uri);
+        httpd_register_uri_handler(camera_httpd, &door_bell_uri);
     }
 
     config.server_port = sPort;
