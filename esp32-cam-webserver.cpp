@@ -370,7 +370,7 @@ void doorbell_rings_update(void *pvParameters){
         }
 
         // set the LED:
-        analogWrite(4, ringState);
+        // analogWrite(4, ringState);
 
         // save the reading. Next time through the loop, it'll be the lastButtonState:
         lastButtonState = reading;
