@@ -641,19 +641,25 @@ const uint8_t index_ov2640_html[] = R"=====(<!doctype html>
   
   // Функция для выполнения GET-запроса
   function callDoorBell() {
-    fetch('/door_bell')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.text();
-      })
-      .then(data => {
+  fetch('/door_bell')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.text();
+    })
+    .then(data => {
+      if (data === "Ding dong!") {
+        // Здесь код для воспроизведения звонка
         console.log('Door bell rang:', data);
-      })
-      .catch(error => {
-        console.error('There has been a problem with your fetch operation:', error);
-      });
+        // Например, можно использовать Audio API для воспроизведения звука
+        var audio = new Audio('/doorbell_sound.mp3');
+        audio.play();
+      }
+    })
+    .catch(error => {
+      console.error('There has been a problem with your fetch operation:', error);
+    });
   }
 
   // Вызов функции callDoorBell каждые 500 мс
