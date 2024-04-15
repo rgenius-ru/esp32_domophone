@@ -506,38 +506,35 @@ static esp_err_t info_handler(httpd_req_t *req){
 }
 
 // Обработчик для звукового файла
-static esp_err_t doorbell_sound_handler(httpd_req_t *req){
-    // Открываем файл из SPIFFS
-    FILE* file = fopen("/spiffs/doorbell_sound.mp3", "r");
-    if (file == NULL) {
+static esp_err_t doorbell_sound_handler(httpd_req_t *req) {
+    // Открываем файл звукового файла (например /spiffs/doorbell_sound.mp3) из SPIFFS
+    const char* sound_file_path = "/spiffs/doorbell_sound.mp3"; // Путь к звуковому файлу
+    httpd_resp_set_type(req, "audio/mpeg");
+
+    FILE* file = fopen(sound_file_path, "rb");
+    if (!file) {
         httpd_resp_send_404(req);
         return ESP_FAIL;
     }
 
-    // Получаем размер файла
-    fseek(file, 0, SEEK_END);
-    long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    // Устанавливаем тип содержимого и отправляем файл
-    httpd_resp_set_type(req, "audio/mpeg");
-    esp_err_t res = httpd_resp_send(req, NULL, fileSize);
-
-    // Читаем и отправляем данные файла
-    if (res == ESP_OK) {
-        char buffer[1024];
-        size_t bytesRead;
-        while ((bytesRead = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-            if (httpd_resp_send_chunk(req, buffer, bytesRead) != ESP_OK) {
+    // Отправляем содержимое файла клиенту (браузеру)
+    char buffer[1024];
+    size_t read_bytes;
+    do {
+        read_bytes = fread(buffer, 1, sizeof(buffer), file);
+        if (read_bytes > 0) {
+            if (httpd_resp_send_chunk(req, buffer, read_bytes) != ESP_OK) {
                 fclose(file);
                 return ESP_FAIL;
             }
         }
-        httpd_resp_send_chunk(req, NULL, 0); // Посылаем последний чанк для завершения передачи
-    }
+    } while (read_bytes > 0);
+
+    // Посылаем последний чанк для завершения передачи
+    httpd_resp_send_chunk(req, NULL, 0);
 
     fclose(file);
-    return res;
+    return ESP_OK;
 }
 
 static esp_err_t favicon_16x16_handler(httpd_req_t *req){
