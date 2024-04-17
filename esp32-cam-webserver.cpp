@@ -427,6 +427,19 @@ void ringHeard(){
     ringState = LOW;
 }
 
+void rfid_update(void *pvParameters){
+    TickType_t xLastWakeTime = xTaskGetTickCount(); // Получить текущее время в тиках
+
+    for (;;) {
+        // Ждать до следующего цикла 10 мс
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10));
+
+        if (not isDoorLockOpened and is_correct_key()){
+            openDoor();
+        }
+    }
+}
+
 void printLocalTime(bool extraData=false) {
     struct tm timeinfo;
     if(!getLocalTime(&timeinfo)){
@@ -925,10 +938,20 @@ void setup() {
         Serial.println("No lamp, or lamp disabled in config");
     }
 
-    // Создание задачи
+    // Создание задачи: Опрос дверного звонка
     xTaskCreate(
         doorbell_rings_update,   // Функция с кодом задачи
         "doorbell_rings_update", // Название задачи
+        2048,           // Размер стека задачи
+        NULL,           // Параметры, передаваемые в задачу
+        1,              // Приоритет задачи
+        NULL            // Дескриптор задачи
+    );
+
+    // Создание задачи: Опрос rfid модуля
+    xTaskCreate(
+        rfid_update,   // Функция с кодом задачи
+        "rfid_update", // Название задачи
         2048,           // Размер стека задачи
         NULL,           // Параметры, передаваемые в задачу
         1,              // Приоритет задачи
