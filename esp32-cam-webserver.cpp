@@ -208,12 +208,6 @@ int lastButtonState = LOW;   // the previous reading from the input pin
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 const int debounceDelay = 50;    // the debounce time; increase if the output flickers
 
-#define MISO_PIN        12
-#define MOSI_PIN        13
-#define SCK_PIN         14
-#define SS_PIN          15
-#define RST_PIN         16
-
 MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
 byte correctUid[4] = {51, 214, 210, 247}; // Init array that will store uid correct key
 
@@ -306,7 +300,7 @@ void setLamp(int newVal) {
 
 void init_rfid(){
 	SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, SS_PIN);			// Init SPI bus
-	mfrc522.PCD_Init();		// Init MFRC522
+	mfrc522.PCD_Init(SS_PIN, RST_PIN);		// Init MFRC522
 	delay(4);				// Optional delay. Some board do need more time after init to be ready, see Readme
 	Serial.print("MFRC522 module ");
 	mfrc522.PCD_DumpVersionToSerial();	// Show details of PCD - MFRC522 Card Reader details
@@ -948,6 +942,8 @@ void setup() {
         NULL            // Дескриптор задачи
     );
 
+    init_rfid();
+
     // Создание задачи: Опрос rfid модуля
     xTaskCreate(
         rfid_update,   // Функция с кодом задачи
@@ -957,8 +953,6 @@ void setup() {
         1,              // Приоритет задачи
         NULL            // Дескриптор задачи
     );
-
-    init_rfid();
 
     // Start the camera server
     startCameraServer(httpPort, streamPort);

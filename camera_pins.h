@@ -30,8 +30,16 @@
   #define LED_ON           LOW // - Pin is inverted.
   #define LED_OFF         HIGH //
   // #define LAMP_PIN           4 // LED FloodLamp.
+  
   #define DOOR_LOCK_PIN      4
-  #define BUTTON_PIN        14
+  #define BUTTON_PIN         2
+
+  // rc522 module 
+  #define MISO_PIN          12
+  #define MOSI_PIN          13
+  #define SCK_PIN           14
+  #define SS_PIN            15
+  #define RST_PIN           -1
 
 #elif defined(CAMERA_MODEL_WROVER_KIT)
   //
