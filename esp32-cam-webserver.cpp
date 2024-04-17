@@ -8,6 +8,8 @@
 #include "src/parsebytes.h"
 #include "time.h"
 #include <ESPmDNS.h>
+#include <SPI.h>
+#include <MFRC522.h>
 
 
 /* This sketch is a extension/expansion/reork of the 'official' ESP32 Camera example
@@ -206,6 +208,15 @@ int lastButtonState = LOW;   // the previous reading from the input pin
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 const int debounceDelay = 50;    // the debounce time; increase if the output flickers
 
+#define MISO_PIN        12
+#define MOSI_PIN        13
+#define SCK_PIN         14
+#define SS_PIN          15
+#define RST_PIN         16
+
+MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
+byte correctUid[4] = {51, 214, 210, 247}; // Init array that will store uid correct key
+
 #if defined(NO_FS)
     bool filesystem = false;
 #else
@@ -291,6 +302,37 @@ void setLamp(int newVal) {
         Serial.println(brightness);
     }
 #endif
+}
+
+void init_rfid(){
+	SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, SS_PIN);			// Init SPI bus
+	mfrc522.PCD_Init();		// Init MFRC522
+	delay(4);				// Optional delay. Some board do need more time after init to be ready, see Readme
+	Serial.print("MFRC522 module ");
+	mfrc522.PCD_DumpVersionToSerial();	// Show details of PCD - MFRC522 Card Reader details
+}
+
+bool is_correct_key(){
+	// Return if no new card present on the sensor/reader. This saves the entire process when idle.
+	if ( ! mfrc522.PICC_IsNewCardPresent()) {
+		return false;
+	}
+
+	// Select one of the cards
+	if ( ! mfrc522.PICC_ReadCardSerial()) {
+		return false;
+	}
+
+	// Dump debug info about the card; PICC_HaltA() is automatically called
+	// mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
+
+	for (byte i = 0; i < 4; i++) {
+		if (mfrc522.uid.uidByte[i] != correctUid[i]){
+			return false;
+		}
+  	}
+
+	return true;
 }
 
 // Закрыть дверной замок
@@ -892,6 +934,8 @@ void setup() {
         1,              // Приоритет задачи
         NULL            // Дескриптор задачи
     );
+
+    init_rfid();
 
     // Start the camera server
     startCameraServer(httpPort, streamPort);
