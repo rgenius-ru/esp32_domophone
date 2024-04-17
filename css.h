@@ -34,7 +34,7 @@ section.main {
   display: none;
   flex-wrap: nowrap;
   color: #EFEFEF;
-  width: 380px;
+  width: 330px;
   background: #363636;
   padding: 8px;
   border-radius: 4px;
@@ -102,7 +102,7 @@ section#buttons {
 .input-group>label {
   display: inline-block;
   padding-right: 10px;
-  min-width: 47%
+  min-width: 40%
 }
 
 .input-group input,.input-group select {
